@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /ad-min
+Sitemap: https://www.monitormkt.com/api/sitemap.xml
