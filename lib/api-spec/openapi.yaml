@@ -1,0 +1,283 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: API specification
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+paths:
+  /site:
+    get:
+      operationId: getSite
+      responses:
+        "200":
+          description: Public published site content
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteContent" }
+  /inquiries:
+    post:
+      operationId: submitInquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InquiryInput" }
+      responses:
+        "201":
+          description: Saved inquiry, with actual email status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SubmissionResult" }
+  /admin/session:
+    get:
+      operationId: getAdminSession
+      responses:
+        "200":
+          description: Current authenticated administrator
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSession" }
+  /admin/site:
+    put:
+      operationId: saveSite
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SiteContent" }
+      responses:
+        "200":
+          description: Saved site
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SiteContent" }
+  /admin/inquiries:
+    get:
+      operationId: listInquiries
+      responses:
+        "200":
+          description: Contact and quotation inbox
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Inquiry" }
+  /admin/inquiries/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema: { type: integer }
+    patch:
+      operationId: updateInquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InquiryUpdate" }
+      responses:
+        "200":
+          description: Updated inquiry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Inquiry" }
+    delete:
+      operationId: deleteInquiry
+      responses:
+        "204": { description: Deleted }
+  /admin/summary:
+    get:
+      operationId: getAdminSummary
+      responses:
+        "200":
+          description: Inbox summary and email configuration
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminSummary" }
+  /admin/access:
+    get:
+      operationId: getAdminAccess
+      responses:
+        "200":
+          description: Two administrator slots
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAccess" }
+    put:
+      operationId: saveAdminAccess
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminAccess" }
+      responses:
+        "200":
+          description: Updated administrator access
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AdminAccess" }
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UploadInput" }
+      responses:
+        "200":
+          description: Signed upload URL; PUT file bytes to uploadURL then use publicUrl in site content
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/UploadResult" }
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+components:
+  schemas:
+    SiteContent:
+      type: object
+      required: [heroTitle, heroDescription, aboutTitle, aboutDescription, aboutImage, videoUrl, phone, address, email, facebook, pages, insights]
+      properties:
+        heroTitle: { type: string, maxLength: 180 }
+        heroDescription: { type: string, maxLength: 2000 }
+        aboutTitle: { type: string, maxLength: 200 }
+        aboutDescription: { type: string, maxLength: 4000 }
+        aboutImage: { type: string, maxLength: 2000 }
+        videoUrl: { type: string, maxLength: 2000 }
+        phone: { type: string, maxLength: 80 }
+        address: { type: string, maxLength: 400 }
+        email: { type: string, format: email }
+        facebook: { type: string, maxLength: 2000 }
+        pages:
+          type: array
+          maxItems: 30
+          items: { $ref: "#/components/schemas/ContentPage" }
+        insights:
+          type: array
+          maxItems: 100
+          items: { $ref: "#/components/schemas/Insight" }
+    ContentPage:
+      type: object
+      required: [slug, title, body, image, showInMenu, published]
+      properties:
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 80 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        body: { type: string, maxLength: 30000 }
+        image: { type: string, maxLength: 2000 }
+        showInMenu: { type: boolean }
+        published: { type: boolean }
+    Insight:
+      type: object
+      required: [slug, title, category, summary, body, image, resourceUrl, published]
+      properties:
+        slug: { type: string, pattern: "^[a-z0-9]+(?:-[a-z0-9]+)*$", maxLength: 80 }
+        title: { type: string, minLength: 1, maxLength: 180 }
+        category: { type: string, enum: [articulo, reporte, caso] }
+        summary: { type: string, maxLength: 1000 }
+        body: { type: string, maxLength: 30000 }
+        image: { type: string, maxLength: 2000 }
+        resourceUrl: { type: string, maxLength: 2000 }
+        published: { type: boolean }
+    InquiryInput:
+      type: object
+      required: [name, email, message, kind, website]
+      properties:
+        name: { type: string, minLength: 2, maxLength: 120 }
+        company: { type: string, maxLength: 160 }
+        email: { type: string, format: email, maxLength: 254 }
+        phone: { type: string, maxLength: 50 }
+        message: { type: string, minLength: 10, maxLength: 5000 }
+        kind: { type: string, enum: [contacto, cotizacion] }
+        service: { type: string, maxLength: 120 }
+        website: { type: string, maxLength: 0, description: Honeypot; leave empty }
+    SubmissionResult:
+      type: object
+      required: [id, message, emailSent]
+      properties:
+        id: { type: integer }
+        message: { type: string }
+        emailSent: { type: boolean }
+    Inquiry:
+      type: object
+      required: [id, name, company, email, phone, message, kind, service, status, emailSent, createdAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        company: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        message: { type: string }
+        kind: { type: string }
+        service: { type: string }
+        status: { type: string, enum: [nuevo, en_proceso, atendido] }
+        emailSent: { type: boolean }
+        createdAt: { type: string }
+    InquiryUpdate:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [nuevo, en_proceso, atendido] }
+    AdminSession:
+      type: object
+      required: [email, isAdmin]
+      properties:
+        email: { type: string }
+        isAdmin: { type: boolean }
+    AdminAccess:
+      type: object
+      required: [emails]
+      properties:
+        emails:
+          type: array
+          minItems: 1
+          maxItems: 2
+          items: { type: string, format: email }
+    AdminSummary:
+      type: object
+      required: [total, newCount, quotes, emailConfigured, emailRecipient, emailNote]
+      properties:
+        total: { type: integer }
+        newCount: { type: integer }
+        quotes: { type: integer }
+        emailConfigured: { type: boolean }
+        emailRecipient: { type: string }
+        emailNote: { type: string }
+    UploadInput:
+      type: object
+      required: [name, size, contentType]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        size: { type: integer, minimum: 1, maximum: 314572800 }
+        contentType: { type: string, enum: [image/jpeg, image/png, image/webp, image/gif, video/mp4, video/webm, application/pdf] }
+    UploadResult:
+      type: object
+      required: [uploadURL, objectPath, publicUrl]
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+        publicUrl: { type: string }
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+

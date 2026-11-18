@@ -1,0 +1,1 @@
+{"version":3,"file":"adminSummary.d.ts","sourceRoot":"","sources":["../../../src/generated/types/adminSummary.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,WAAW,YAAY;IAC3B,KAAK,EAAE,MAAM,CAAC;IACd,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,EAAE,MAAM,CAAC;IACf,eAAe,EAAE,OAAO,CAAC;IACzB,cAAc,EAAE,MAAM,CAAC;IACvB,SAAS,EAAE,MAAM,CAAC;CACnB"}
