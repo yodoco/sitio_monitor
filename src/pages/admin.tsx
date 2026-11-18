@@ -13,7 +13,7 @@ import {
 } from '@workspace/api-client-react';
 import {
   AlertTriangle, ArrowUpRight, Check, ExternalLink, FileText, Inbox, LayoutDashboard, Loader2, LogOut, Mail, Menu as MenuIcon,
-  Plus, RefreshCw, Save, Settings2, ShieldCheck, Trash2, Upload, X, Newspaper, PanelsTopLeft, Search,
+  Plus, RefreshCw, Save, Settings2, ShieldCheck, Trash2, Upload, X, Newspaper, PanelsTopLeft, Search, Building2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -74,13 +74,14 @@ function AdminSessionGate() {
 }
 
 /* ----------------------------- SHELL ----------------------------- */
-type Tab = 'resumen' | 'solicitudes' | 'contenido' | 'paginas' | 'insights' | 'accesos';
+type Tab = 'resumen' | 'solicitudes' | 'contenido' | 'paginas' | 'insights' | 'tablero' | 'accesos';
 const TABS: { k: Tab; l: string; i: typeof Inbox }[] = [
   { k: 'resumen', l: 'Resumen', i: LayoutDashboard },
   { k: 'solicitudes', l: 'Solicitudes', i: Inbox },
   { k: 'contenido', l: 'Contenido y medios', i: Settings2 },
   { k: 'paginas', l: 'Páginas del menú', i: PanelsTopLeft },
   { k: 'insights', l: 'Insights', i: Newspaper },
+  { k: 'tablero', l: 'Inteligencia inmobiliaria', i: Building2 },
   { k: 'accesos', l: 'Accesos', i: ShieldCheck },
 ];
 
@@ -134,6 +135,7 @@ function AdminShell({ email }: { email: string }) {
               {tab === 'contenido' && (editor.draft ? <ContentTab editor={editor} /> : <FormSkeleton />)}
               {tab === 'paginas' && (editor.draft ? <PagesTab editor={editor} /> : <FormSkeleton />)}
               {tab === 'insights' && (editor.draft ? <InsightsTab editor={editor} /> : <FormSkeleton />)}
+              {tab === 'tablero' && <TableroTab />}
               {tab === 'accesos' && <AccessTab />}
             </>
           )}
@@ -616,6 +618,125 @@ function AccessTab() {
         </div>
       </Card>
       <p className="text-xs text-slate-text">El registro público no otorga permisos: solo los correos de esta lista, verificados, pueden entrar al administrador.</p>
+    </div>
+  );
+}
+
+/* ----------------------------- INTELIGENCIA INMOBILIARIA ----------------------------- */
+type TableroUser = { email: string; note: string; createdAt?: string };
+type TableroMeta = { cutoff: string; bytes: number; updatedAt: string; updatedBy: string } | null;
+type TableroAdmin = { users: TableroUser[]; data: TableroMeta };
+async function tableroApi<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const r = await fetch(`/api${path}`, { credentials: 'same-origin', ...init, headers: { Accept: 'application/json', ...(init.headers ?? {}) } });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((body as { error?: string }).error || 'No se pudo completar la solicitud.');
+  return body as T;
+}
+const emailOk = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+function TableroTab() {
+  const { toast } = useToast();
+  const [users, setUsers] = useState<TableroUser[] | null>(null);
+  const [meta, setMeta] = useState<TableroMeta>(null);
+  const [error, setError] = useState(false);
+  const [nuevo, setNuevo] = useState('');
+  const [nota, setNota] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [subiendo, setSubiendo] = useState(false);
+  const [quitar, setQuitar] = useState<string | null>(null);
+  const archivo = useRef<HTMLInputElement>(null);
+  const cargar = () => {
+    setError(false);
+    tableroApi<TableroAdmin>('/admin/tablero').then((r) => { setUsers(r.users); setMeta(r.data); }).catch(() => setError(true));
+  };
+  useEffect(cargar, []);
+  if (error) return <ErrorBox msg="No se pudo cargar el acceso al tablero." onRetry={cargar} />;
+  if (!users) return <FormSkeleton />;
+
+  const guardar = (lista: TableroUser[], aviso: string) => {
+    setGuardando(true);
+    tableroApi<TableroAdmin>('/admin/tablero/users', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ users: lista.map(({ email, note }) => ({ email, note })) }),
+    }).then((r) => { setUsers(r.users); setMeta(r.data); toast({ title: aviso }); })
+      .catch((e: Error) => toast({ title: e.message, variant: 'destructive' }))
+      .finally(() => setGuardando(false));
+  };
+  const correo = nuevo.trim().toLowerCase();
+  const repetido = users.some((u) => u.email === correo);
+  const agregar = () => {
+    if (!emailOk(correo) || repetido) return;
+    guardar([...users, { email: correo, note: nota.trim() }], 'Correo autorizado');
+    setNuevo(''); setNota('');
+  };
+  const subir = async (file: File) => {
+    setSubiendo(true);
+    try {
+      const text = await file.text();
+      const r = await tableroApi<{ data: TableroMeta }>('/admin/tablero/data', { method: 'PUT', headers: { 'Content-Type': 'text/plain' }, body: text });
+      setMeta(r.data);
+      toast({ title: 'Datos del tablero actualizados' });
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSubiendo(false);
+      if (archivo.current) archivo.current.value = '';
+    }
+  };
+
+  return (
+    <div className="max-w-3xl space-y-6">
+      <Card title="Usuarios autorizados" desc="Cada persona crea su cuenta en /inteligencia-inmobiliaria con su correo y contraseña, y verifica su correo. Solo entran los correos de esta lista y los administradores."
+        actions={<a href={`${BASE}/inteligencia-inmobiliaria`} target="_blank" rel="noreferrer" className="btn-outline !py-2 text-xs" data-testid="link-open-tablero"><ArrowUpRight className="h-3.5 w-3.5" />Abrir el tablero</a>}>
+        <div className="space-y-4">
+          {users.length === 0 && <p className="text-sm text-slate-text">Todavía no hay correos autorizados.</p>}
+          {users.length > 0 && (
+            <ul className="divide-y divide-border rounded-xl border border-border" data-testid="list-tablero-users">
+              {users.map((u) => (
+                <li key={u.email} className="flex items-center justify-between gap-3 px-4 py-3 text-sm">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-navy">{u.email}</p>
+                    <p className="text-xs text-slate-text">{[u.note, u.createdAt && `desde ${format(new Date(u.createdAt), "d 'de' MMMM 'de' yyyy", { locale: es })}`].filter(Boolean).join(' · ')}</p>
+                  </div>
+                  <button type="button" onClick={() => setQuitar(u.email)} disabled={guardando} className="text-slate-text hover:text-destructive" aria-label={`Quitar ${u.email}`}><Trash2 className="h-4 w-4" /></button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+            <Field label="Correo"><input className={input} type="email" value={nuevo} onChange={(e) => setNuevo(e.target.value)} placeholder="correo@empresa.com" data-testid="input-tablero-email" /></Field>
+            <Field label="Empresa o nota (opcional)"><input className={input} value={nota} maxLength={120} onChange={(e) => setNota(e.target.value)} data-testid="input-tablero-note" /></Field>
+            <button type="button" onClick={agregar} disabled={!emailOk(correo) || repetido || guardando} className="btn-primary !py-2 text-xs" data-testid="button-tablero-add">
+              {guardando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}Autorizar
+            </button>
+          </div>
+          {correo && !emailOk(correo) && <p className="text-xs text-destructive">Correo no válido.</p>}
+          {repetido && <p className="text-xs text-destructive">Ese correo ya está autorizado.</p>}
+        </div>
+      </Card>
+      <Card title="Datos del tablero" desc="Carga el datos.json que genera Monitor cada mes. Reemplaza los datos actuales. Los datos no se publican: solo los ven las cuentas autorizadas.">
+        <div className="space-y-4 text-sm">
+          {meta
+            ? <p className="text-navy">Datos a <strong>{meta.cutoff}</strong> · {(meta.bytes / 1e6).toFixed(1)} MB · cargados el {format(new Date(meta.updatedAt), "d 'de' MMMM 'de' yyyy, HH:mm", { locale: es })} por {meta.updatedBy}</p>
+            : <p className="text-slate-text">Todavía no hay datos cargados: el tablero muestra un aviso hasta que se cargue el primer archivo.</p>}
+          <input ref={archivo} type="file" accept=".json,application/json" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) subir(f); }} data-testid="input-tablero-file" />
+          <button type="button" onClick={() => archivo.current?.click()} disabled={subiendo} className="btn-primary !py-2 text-xs" data-testid="button-tablero-upload">
+            {subiendo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}Cargar datos.json
+          </button>
+        </div>
+      </Card>
+      <AlertDialog open={quitar !== null} onOpenChange={(o) => { if (!o) setQuitar(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Quitar el acceso?</AlertDialogTitle>
+            <AlertDialogDescription>{quitar} ya no podrá ver el tablero. Puedes volver a autorizarlo después.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { const e = quitar; setQuitar(null); if (e) guardar(users.filter((u) => u.email !== e), 'Acceso retirado'); }}>Quitar acceso</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

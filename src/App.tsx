@@ -14,6 +14,7 @@ import { Wordmark } from '@/components/site/shared';
 import { Seo } from '@/components/site/seo';
 import { PublicRoutes } from './public-routes';
 import AdminPage from '@/pages/admin';
+import InteligenciaInmobiliariaPage from '@/pages/inteligencia-inmobiliaria';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: true, staleTime: 30_000 } } });
 const initialSite = document.getElementById('monitor-site-data')?.textContent;
@@ -87,15 +88,17 @@ const clerkAppearance = {
   },
 };
 
-function AuthFrame({ children }: { children: ReactNode }) {
+function AuthFrame({ children, tablero = false }: { children: ReactNode; tablero?: boolean }) {
   const { t } = useLang();
   return (
     <div className="hero-bg relative flex min-h-[100dvh] flex-col items-center justify-center gap-8 px-4 py-12">
-      <Seo title={t('Acceso administrador', 'Admin access')} description="Monitor" noindex />
+      <Seo title={tablero ? t('Inteligencia inmobiliaria', 'Real estate intelligence') : t('Acceso administrador', 'Admin access')} description="Monitor" noindex />
       <Link href="/" className="relative"><Wordmark light /></Link>
       <div className="relative w-full">{children}</div>
       <p className="relative max-w-sm text-center text-xs text-white/60">
-        {t('Acceso exclusivo para administradores autorizados de Monitor. Crear una cuenta no otorga permisos.', 'Access exclusive to authorized Monitor administrators. Creating an account does not grant permissions.')}
+        {tablero
+          ? t('Acceso para usuarios autorizados por Monitor. Crear una cuenta no otorga acceso: Monitor debe autorizar tu correo.', 'Access for users authorized by Monitor. Creating an account does not grant access: Monitor must authorize your email.')
+          : t('Acceso exclusivo para administradores autorizados de Monitor. Crear una cuenta no otorga permisos.', 'Access exclusive to authorized Monitor administrators. Creating an account does not grant permissions.')}
       </p>
     </div>
   );
@@ -113,6 +116,23 @@ function SignUpPage() {
   return (
     <AuthFrame>
       <SignUp routing="path" path={`${basePath}/ad-min/sign-up`} signInUrl={`${basePath}/ad-min/sign-in`} fallbackRedirectUrl={`${basePath}/ad-min`} />
+    </AuthFrame>
+  );
+}
+
+const TABLERO = '/inteligencia-inmobiliaria';
+function TableroSignInPage() {
+  return (
+    <AuthFrame tablero>
+      <SignIn routing="path" path={`${basePath}${TABLERO}/sign-in`} signUpUrl={`${basePath}${TABLERO}/sign-up`} fallbackRedirectUrl={`${basePath}${TABLERO}`} />
+    </AuthFrame>
+  );
+}
+
+function TableroSignUpPage() {
+  return (
+    <AuthFrame tablero>
+      <SignUp routing="path" path={`${basePath}${TABLERO}/sign-up`} signInUrl={`${basePath}${TABLERO}/sign-in`} fallbackRedirectUrl={`${basePath}${TABLERO}`} />
     </AuthFrame>
   );
 }
@@ -142,6 +162,9 @@ function RoutedErrorBoundary({ children }: { children: ReactNode }) {
 function AppRoutes() {
   return (
     <Switch>
+      <Route path="/inteligencia-inmobiliaria/sign-in/*?" component={TableroSignInPage} />
+      <Route path="/inteligencia-inmobiliaria/sign-up/*?" component={TableroSignUpPage} />
+      <Route path="/inteligencia-inmobiliaria">{() => <RoutedErrorBoundary><InteligenciaInmobiliariaPage /></RoutedErrorBoundary>}</Route>
       <Route path="/ad-min/sign-in/*?" component={SignInPage} />
       <Route path="/ad-min/sign-up/*?" component={SignUpPage} />
       <Route path="/ad-min">{() => <RoutedErrorBoundary><AdminPage /></RoutedErrorBoundary>}</Route>
@@ -151,9 +174,10 @@ function AppRoutes() {
 }
 
 function ClerkProviderWithRoutes() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { lang } = useLang();
   const base = lang === 'es' ? esES : enUS;
+  const enTablero = location.startsWith(TABLERO);
   return (
     <ClerkProvider
       publishableKey={clerkPubKey}
@@ -170,7 +194,7 @@ function ClerkProviderWithRoutes() {
           ...base.signIn,
           start: {
             ...base.signIn?.start,
-            title: lang === 'es' ? 'Administrador Monitor' : 'Monitor administration',
+            title: enTablero ? (lang === 'es' ? 'Inteligencia inmobiliaria' : 'Real estate intelligence') : (lang === 'es' ? 'Administrador Monitor' : 'Monitor administration'),
             subtitle: lang === 'es' ? 'Inicia sesión con tu correo autorizado' : 'Sign in with your authorized email',
           },
         },
@@ -178,7 +202,7 @@ function ClerkProviderWithRoutes() {
           ...base.signUp,
           start: {
             ...base.signUp?.start,
-            title: lang === 'es' ? 'Registrar correo autorizado' : 'Register authorized email',
+            title: enTablero ? (lang === 'es' ? 'Crear tu cuenta' : 'Create your account') : (lang === 'es' ? 'Registrar correo autorizado' : 'Register authorized email'),
             subtitle: lang === 'es' ? 'Solo correos autorizados obtienen acceso' : 'Only authorized emails get access',
           },
         },

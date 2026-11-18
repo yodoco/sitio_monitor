@@ -40,6 +40,7 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 - El CMS es sencillo y tiene como máximo dos administradores.
 - El usuario reiteró que no se debe rediseñar la maqueta: conservar distribución, degradados y Poppins del PDF y utilizar el logotipo vectorial oficial completo, no reconstruirlo con texto.
 - El acceso al CMS debe ser privado visualmente en `/ad-min`, sin enlaces públicos ni portal de clientes. No se requiere página de términos y condiciones.
+- Excepción autorizada (18 nov 2026): `/inteligencia-inmobiliaria` es un tablero privado con acceso por correo autorizado, sin enlaces públicos ni indexación. Ver `docs/CONFIGURACION-MONITOR.md`.
 
 ## Gotchas
 
