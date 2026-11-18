@@ -9,6 +9,18 @@
 - Desarrollo y publicación usan cuentas de Clerk separadas. La lista de correos inicial también se aplica en producción; el dueño debe verificar su correo allí. Los cambios posteriores se guardan en la base de datos correspondiente.
 - El panel permite gestionar contenido, páginas adicionales, publicaciones, imágenes, videos y enlaces, y atender contactos y cotizaciones.
 
+## Inteligencia inmobiliaria (tablero privado)
+
+- Dirección: `/inteligencia-inmobiliaria`. No tiene enlaces en el sitio; `robots.txt` y `noindex` lo dejan fuera de buscadores.
+- Acceso: cuentas de Clerk con correo verificado. Entran los correos autorizados en el panel (pestaña **Inteligencia inmobiliaria**) y los administradores. Crear una cuenta no da acceso. Sin límite de dos correos (máximo 200).
+- Inicio de sesión y registro: `/inteligencia-inmobiliaria/sign-in` y `/inteligencia-inmobiliaria/sign-up`.
+- Datos: se cargan desde el panel con el `datos.json` que genera Monitor cada mes. Se guardan en la tabla `monitor_tablero_data` y solo los entrega `GET /api/tablero/data` a cuentas autorizadas (comprimidos y con ETag).
+- **No subir `datos.json` a `public/`, a la biblioteca multimedia ni al repositorio**: sería público.
+- Código del tablero (sin datos): `public/inteligencia-inmobiliaria/tablero/` (`index.html` y `tablero.js`). Lo genera Monitor; se reemplaza completo cuando cambie el tablero.
+- La página muestra el tablero en un marco. Su botón "Cerrar sesión" le pide a la página cerrar la sesión de Clerk; si la sesión vence, el tablero avisa y la página vuelve a validar el acceso.
+- Tablas nuevas: `monitor_tablero_access` y `monitor_tablero_data`. En desarrollo: `pnpm --filter @workspace/db run push`; en producción se aplican al publicar.
+- Mapa: fondo de calles de OpenStreetMap, para uso moderado. Con muchos usuarios conviene cambiar `fondoMapa` en `index.html` por un proveedor de mapas.
+
 ## Solicitudes y Resend
 
 - Las solicitudes válidas se guardan en PostgreSQL antes de intentar enviar la notificación.

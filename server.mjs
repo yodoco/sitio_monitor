@@ -49,7 +49,7 @@ export async function handle(req, res) {
     return send(req, res, 301, '');
   }
   if (url.pathname === '/robots.txt') {
-    return send(req, res, 200, `User-agent: *\nAllow: /\nDisallow: /ad-min\nSitemap: ${origin}/api/sitemap.xml\n`, 'text/plain; charset=utf-8');
+    return send(req, res, 200, `User-agent: *\nAllow: /\nDisallow: /ad-min\nDisallow: /inteligencia-inmobiliaria\nSitemap: ${origin}/api/sitemap.xml\n`, 'text/plain; charset=utf-8');
   }
   if (url.pathname.startsWith('/api/')) return send(req, res, 404, 'Not found', 'text/plain');
   if (production && (url.pathname.startsWith('/assets/') || path.extname(url.pathname))) {
@@ -77,6 +77,11 @@ export async function handle(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (/^\/ad-min(?:\/sign-(?:in|up)(?:\/.*)?)?$/.test(url.pathname)) {
     const head = '<title>Administrador Monitor</title><meta name="robots" content="noindex, nofollow">';
+    return send(req, res, 200, templateWithHead(template, head));
+  }
+  // Tablero de inteligencia inmobiliaria: privado, sin SSR ni datos del sitio; el acceso lo valida la API.
+  if (/^\/inteligencia-inmobiliaria(?:\/sign-(?:in|up)(?:\/.*)?)?$/.test(url.pathname)) {
+    const head = '<title>Inteligencia inmobiliaria · Monitor</title><meta name="robots" content="noindex, nofollow">';
     return send(req, res, 200, templateWithHead(template, head));
   }
   const response = await fetch(`${apiOrigin}/api/site`, {

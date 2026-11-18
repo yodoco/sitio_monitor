@@ -5,6 +5,7 @@ import inquiriesRouter from "./inquiries";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
 import seoRouter from "./seo";
+import tableroRouter from "./tablero";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(inquiriesRouter);
 router.use(adminRouter);
 router.use(storageRouter);
 router.use(seoRouter);
+router.use(tableroRouter);
 
 export default router;

@@ -31,5 +31,19 @@ export const mediaUploads = pgTable("monitor_media_uploads", {
   ownerId: text("owner_id").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+// Tablero de inteligencia inmobiliaria: correos autorizados y datos (privados; nunca en /public ni en el repositorio)
+export const tableroAccess = pgTable("monitor_tablero_access", {
+  email: text("email").primaryKey(),
+  note: text("note").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+export const tableroData = pgTable("monitor_tablero_data", {
+  id: integer("id").primaryKey(),
+  content: text("content").notNull(),
+  cutoff: text("cutoff").notNull().default(""),
+  bytes: integer("bytes").notNull(),
+  updatedBy: text("updated_by").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
 export const insertInquirySchema = createInsertSchema(inquiries).omit({ id: true, createdAt: true });
 export type InquiryRecord = typeof inquiries.$inferSelect;
